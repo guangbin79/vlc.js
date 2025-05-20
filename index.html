@@ -1,37 +1,171 @@
-<!doctype html>
-<html lang="en-us">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title>VLC Wasm Example</title>
-    </head>
-    <body>
-        <div>
-            <canvas id="canvas" style="background-color:gray;"></canvas>
-            <div>
-                <button id="play">Play</button>
-                <button id="pause">Stop</button>
-                <meter id="seekbar" max="100" style="width: 500px" value="0"></meter>
-                <meter id="volume" max="100" style="width: 100px" value="80"></meter>
-            </div>
-        </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VLCVideo Dual Test Page</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #1e1e1e;
+      color: white;
+      padding: 20px;
+    }
+    vlc-video {
+      display: block;
+      margin-bottom: 1rem;
+      border: 1px solid #444;
+    }
+    .player-container {
+      margin-bottom: 2rem;
+      padding: 1rem;
+      border: 1px solid #555;
+      border-radius: 8px;
+    }
+    button, input[type="range"], input[type="number"] {
+      margin: 0.5rem 0.5rem 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
 
-        <script src="./lib/vlc/experimental.js"></script>
-        <script type="module">
-            import { VLCPlayer } from "./lib/vlc/vlc.js";
+  <h1>&lt;vlc-video&gt; 双视频 HTML5 测试页面</h1>
 
-            let video = {
-                source: "/path/to/video.mkv",
-                options:"--codec=webcodec --aout=emworklet_audio -vv --input-repeat=10000",
-                size: {
-                    width: "700px",
-                    height: ""
-                },
-            };
+  <div class="player-container" id="container1">
+    <h2>视频 1</h2>
+    <vlc-video
+      id="player1"
+      source="https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4"
+      width="640"
+      height="360"
+    ></vlc-video>
 
-            window.onload = async function () {
-                await VLCPlayer(video);
-            };
-        </script>
-    </body>
+    <div>
+      <button onclick="player1.play()">▶️ Play</button>
+      <button onclick="player1.pause()">⏸️ Pause</button>
+      <button onclick="player1.stop()">⏹️ Stop</button>
+      <button onclick="player1.toggleFullscreen()">⛶ Fullscreen</button>
+      <button onclick="player1.toggleMute()">🔇 Mute/Unmute</button>
+    </div>
+
+    <div>
+      <label>Set current time (sec):</label>
+      <input type="number" id="seekTime1" value="10" min="0">
+      <button onclick="player1.currentTime = parseInt(document.getElementById('seekTime1').value) * 1000">⏩ Seek</button>
+    </div>
+
+    <div>
+      <label>Set volume:</label>
+      <input type="range" min="0" max="100" value="100" onchange="player1.volume = this.value">
+    </div>
+
+    <div id="muteStatus1" style="margin-top: 8px;">Muted: false</div>
+
+    <div id="info1">
+      <p>Current time: <span id="currentTime1">0</span> ms</p>
+      <p>Duration: <span id="duration1">0</span> ms</p>
+      <p>Paused: <span id="paused1">true</span></p>
+      <p>Volume: <span id="volume1">100</span></p>
+    </div>
+  </div>
+
+  <div class="player-container" id="container2">
+    <h2>视频 2</h2>
+    <vlc-video
+      id="player2"
+      source="https://www.sample-videos.com/video321/mp4/720/big_buck_bunny_720p_2mb.mp4"
+      width="640"
+      height="360"
+    ></vlc-video>
+
+    <div>
+      <button onclick="player2.play()">▶️ Play</button>
+      <button onclick="player2.pause()">⏸️ Pause</button>
+      <button onclick="player2.stop()">⏹️ Stop</button>
+      <button onclick="player2.toggleFullscreen()">⛶ Fullscreen</button>
+      <button onclick="player2.toggleMute()">🔇 Mute/Unmute</button>
+    </div>
+
+    <div>
+      <label>Set current time (sec):</label>
+      <input type="number" id="seekTime2" value="10" min="0">
+      <button onclick="player2.currentTime = parseInt(document.getElementById('seekTime2').value) * 1000">⏩ Seek</button>
+    </div>
+
+    <div>
+      <label>Set volume:</label>
+      <input type="range" min="0" max="100" value="100" onchange="player2.volume = this.value">
+    </div>
+
+    <div id="muteStatus2" style="margin-top: 8px;">Muted: false</div>
+
+    <div id="info2">
+      <p>Current time: <span id="currentTime2">0</span> ms</p>
+      <p>Duration: <span id="duration2">0</span> ms</p>
+      <p>Paused: <span id="paused2">true</span></p>
+      <p>Volume: <span id="volume2">100</span></p>
+    </div>
+  </div>
+
+  <script type="module">
+    import './vlc-video.js';
+
+    const player1 = document.getElementById('player1');
+    const player2 = document.getElementById('player2');
+
+    const timeDisplay1 = document.getElementById('currentTime1');
+    const durationDisplay1 = document.getElementById('duration1');
+    const pausedDisplay1 = document.getElementById('paused1');
+    const muteStatus1 = document.getElementById('muteStatus1');
+    const volumeDisplay1 = document.getElementById('volume1');
+    const muteSelect1 = document.getElementById('muteSelect1');
+
+    const timeDisplay2 = document.getElementById('currentTime2');
+    const durationDisplay2 = document.getElementById('duration2');
+    const pausedDisplay2 = document.getElementById('paused2');
+    const muteStatus2 = document.getElementById('muteStatus2');
+    const volumeDisplay2 = document.getElementById('volume2');
+    const muteSelect2 = document.getElementById('muteSelect2');
+
+    // 周期更新显示信息 - 视频1
+    setInterval(() => {
+      player1.getCurrentTime();
+      timeDisplay1.textContent = player1.currentTime;
+      durationDisplay1.textContent = player1.duration;
+      pausedDisplay1.textContent = player1.paused;
+      volumeDisplay1.textContent = player1.volume;
+      muteStatus1.textContent = 'Muted: ' + player1.getMute();
+      muteSelect1.value = player1.getMute().toString();
+    }, 1000);
+
+    // 周期更新显示信息 - 视频2
+    setInterval(() => {
+      player2.getCurrentTime();
+      timeDisplay2.textContent = player2.currentTime;
+      durationDisplay2.textContent = player2.duration;
+      pausedDisplay2.textContent = player2.paused;
+      volumeDisplay2.textContent = player2.volume;
+      muteStatus2.textContent = 'Muted: ' + player2.getMute();
+      muteSelect2.value = player2.getMute().toString();
+    }, 1000);
+
+    // 监听播放进度事件 - 视频1
+    player1.addEventListener('timeupdate', (e) => {
+      console.log('视频1进度:', e.detail.progress + '%');
+    });
+
+    // 监听播放进度事件 - 视频2
+    player2.addEventListener('timeupdate', (e) => {
+      console.log('视频2进度:', e.detail.progress + '%');
+    });
+
+    // 监听音量变化事件
+    player1.addEventListener('volumechange', (e) => {
+      console.log('视频1音量:', e.detail.volume);
+    });
+    player2.addEventListener('volumechange', (e) => {
+      console.log('视频2音量:', e.detail.volume);
+    });
+  </script>
+
+</body>
 </html>

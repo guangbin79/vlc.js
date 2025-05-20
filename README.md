@@ -1,3 +1,6 @@
+# \<vlc-video\>
+The custom tag \<vlc-video\>, used to implement \<video\>-like functionality in CEF implementations that do not support H264 decoding.
+
 # Run VLC in the Browser
 
 Quickstart:

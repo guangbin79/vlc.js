@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>VLC Sandbox</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; background: black; overflow: hidden;
+      height: 100%; width: 100%;
+    }
+    canvas {
+      display: block; width: 100%; height: 100%;
+      background: black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="450"></canvas>
+
+  <script src="./lib/vlc/experimental.js"></script>
+
+  <script type="module">
+    import { VLCPlayer } from './lib/vlc/vlc.js';
+
+    let playerInitialized = false;
+    let isPlaying = false;
+    let wasStopped = false;
+    let autoPaused = false;
+    let lastVideoInfo = null;
+    let isMuted = false;
+
+    async function loadVideo(video) {
+      const res = await fetch(video.source);
+      const blob = await res.blob();
+      const file = new File([blob], 'Video', { type: 'video/mp4' });
+
+      await VLCPlayer(video);
+
+      if (!window.Module || !window.Module['vlc_access_file'] || !window.media_player) {
+        console.error('VLC Module or media_player not ready.');
+        return false;
+      }
+
+      window.Module['vlc_access_file'][1] = file;
+      window.files = [file];
+
+      const canvas = document.getElementById('canvas');
+      canvas.width = parseInt(video.size.width);
+      canvas.height = parseInt(video.size.height);
+      canvas.style.width = video.size.width + 'px';
+      canvas.style.height = video.size.height + 'px';
+
+      return true;
+    }
+
+    function fullscreen() {
+      const canvas = document.getElementById('canvas');
+      if (!document.fullscreenElement) {
+        if (canvas.requestFullscreen) {
+          canvas.requestFullscreen();
+        } else if (canvas.webkitRequestFullscreen) {
+          canvas.webkitRequestFullscreen();
+        } else if (canvas.msRequestFullscreen) {
+          canvas.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+    }
+
+    window.addEventListener('message', async (event) => {
+      const { action, video, value } = event.data;
+
+      if (action === 'load' && video) {
+        lastVideoInfo = video;
+        const success = await loadVideo(video);
+        if (!success) return;
+
+        window.media_player.play();
+        isPlaying = true;
+        playerInitialized = true;
+        wasStopped = false;
+      }
+
+      if (action === 'pause' && playerInitialized && isPlaying) {
+        window.media_player.pause();
+        isPlaying = false;
+      }
+
+      if (action === 'resume' && playerInitialized && !isPlaying) {
+        window.media_player.play();
+        isPlaying = true;
+      }
+
+      if (action === 'play') {
+        if (!playerInitialized || wasStopped) {
+          if (!lastVideoInfo) {
+            console.error('No video loaded before. Cannot play.');
+            return;
+          }
+
+          const success = await loadVideo(lastVideoInfo);
+          if (!success) return;
+
+          playerInitialized = true;
+          wasStopped = false;
+        }
+
+        window.media_player.play();
+        isPlaying = true;
+      }
+
+      if (action === 'stop' && playerInitialized) {
+        window.media_player.stop();
+        isPlaying = false;
+        wasStopped = true;
+      }
+
+      if (action === 'set_volume' && playerInitialized) {
+        window.media_player.set_volume(value);
+      }
+
+      if (action === 'get_volume' && playerInitialized) {
+        const volume = window.media_player.get_volume();
+        window.parent.postMessage({ action: 'volume', value: volume }, '*');
+      }
+
+      if (action === 'toggle_mute' && playerInitialized) {
+        const currentMute = window.media_player.get_mute();
+        window.media_player.set_mute(!currentMute);
+        isMuted = !currentMute;
+      }
+
+      if (action === 'set_mute' && playerInitialized && typeof value === 'boolean') {
+        window.media_player.set_mute(value);
+        isMuted = value;
+      }
+
+      if (action === 'get_muted' && playerInitialized) {
+        const muted = window.media_player.get_mute();
+        isMuted = muted;
+        window.parent.postMessage({ action: 'muted', value: muted }, '*');
+      }
+
+      if (action === 'set_time' && playerInitialized && typeof value === 'number') {
+        window.media_player.set_time(value);
+      }
+
+      if (action === 'get_time' && playerInitialized) {
+        const time = window.media_player.get_time();
+        window.parent.postMessage({ action: 'current_time', time }, '*');
+      }
+
+      if (action === 'set_position' && playerInitialized && typeof value === 'number') {
+        window.media_player.set_position(value);
+      }
+
+      if (action === 'get_length' && playerInitialized) {
+        const length = window.media_player.get_length();
+        window.parent.postMessage({ action: 'duration', length }, '*');
+      }
+
+      if (action === 'fullscreen') {
+        fullscreen();
+      }
+    });
+
+    window.update_overlay = function () {
+      if (!window.media_player) return;
+
+      const position = window.media_player.get_position();
+      const percent = Math.round(position * 100);
+
+      if (!autoPaused && isPlaying) {
+        window.media_player.stop();
+        isPlaying = false;
+        wasStopped = true;
+        autoPaused = true;
+      } else {
+        window.parent.postMessage({
+          action: 'progress',
+          progress: percent
+        }, '*');
+      }
+    };
+  </script>
+</body>
+</html>
